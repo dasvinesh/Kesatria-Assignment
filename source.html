@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>3D User Visualization - Kasatria</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="main.css">
+    <style>
+        a { color: #8ff; text-decoration: none; }
+        #menu { position: absolute; bottom: 25px; width: 100%; text-align: center; }
+        
+        .user-card {
+            width: 120px;
+            height: 160px;
+            box-shadow: 0px 0px 15px rgba(0,255,255,0.4);
+            border: 1px solid rgba(127,255,255,0.3);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease-in-out; 
+        }
+
+        .user-card:hover {
+            box-shadow: 0px 0px 20px rgba(0,255,255,0.8);
+            border: 1px solid rgba(127,255,255,0.9);
+            transform: scale(1.05);
+        }
+
+        .stat-right {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 13px;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .stat-left {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 13px;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .avatar-wrap {
+            position: absolute;
+            top: 38px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .avatar-wrap img {
+            width: 65px;
+            height: 65px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.6);
+        }
+
+        .card-info {
+            position: absolute;
+            bottom: 12px;
+            width: 100%;
+            font-size: 11px;
+            color: #fff;
+            line-height: 1.4;
+            padding: 0 4px;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        button {
+            color: rgba(127,255,255,0.9);
+            background: rgba(0,0,0,0.3);
+            outline: 1px solid rgba(127,255,255,0.75);
+            border: none;
+            padding: 8px 16px;
+            margin: 0 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        button:hover { background-color: rgba(0,255,255,0.4); }
+        button:active { color: #000; background-color: rgba(0,255,255,0.8); }
+    </style>
+</head>
+<body>
+
+    <div id="container"></div>
+    <div id="menu">
+        <button id="btn-table">TABLE</button>
+        <button id="btn-sphere">SPHERE</button>
+        <button id="btn-helix">DOUBLE HELIX</button>
+        <button id="btn-grid">GRID</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import TWEEN from 'three/addons/libs/tween.module.js';
+        import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+        // --- Config ---
+        const GOOGLE_SHEET_ID = '1YdL9yQpNm9hwKKwkQbQlL9nhAcNrigQyPVzF1gwNWCE'; 
+        const API_KEY = 'AIzaSyAST-GN7AOpwbNlAu99OfWlZ5lU2BjViOc';
+        const ENDPOINT = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/A2:F?key=${API_KEY}`;
+
+        let camera, scene, renderer, controls;
+        const domItems = [];
+        const formations = { table: [], sphere: [], helix: [], grid: [] };
+
+        // Init App
+        loadDataset();
+
+        async function loadDataset() {
+            try {
+                const response = await fetch(ENDPOINT);
+                const json = await response.json();
+                if (json.values) {
+                    buildScene(json.values);
+                    runAnimationLoop();
+                }
+            } catch (err) {
+                console.error("Failed to load spreadsheet data:", err);
+            }
+        }
+
+        function buildScene(dataset) {
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.z = 3200;
+            scene = new THREE.Scene();
+
+            // 1. Generate DOM Elements
+            dataset.forEach((row) => {
+                // Destructure for cleaner code
+                const [name = '', photoUrl = '', age = '', country = '', interest = '', netWorthRaw = '0'] = row;
+                
+                // Parse currency and determine tier color
+                const netWorth = Number(netWorthRaw.replace(/[^0-9.-]+/g,""));
+                let cardColor = 'rgba(239, 48, 34, 0.8)'; // Default Red
+                
+                if (netWorth > 200000) cardColor = 'rgba(58, 159, 72, 0.8)'; // Green
+                else if (netWorth > 100000) cardColor = 'rgba(253, 202, 53, 0.8)'; // Orange
+
+                // Build Card wrapper
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.style.backgroundColor = cardColor;
+
+                // Inner HTML mapping
+                card.innerHTML = `
+                    <div class="stat-left">${country}</div>
+                    <div class="stat-right">${age}</div>
+                    <div class="avatar-wrap">
+                        <img src="${photoUrl}" onerror="this.style.display='none'" alt="Profile">
+                    </div>
+                    <div class="card-info">
+                        <strong>${name}</strong><br>${interest}
+                    </div>
+                `;
+
+                const cssObj = new CSS3DObject(card);
+                cssObj.position.set(
+                    Math.random() * 4000 - 2000,
+                    Math.random() * 4000 - 2000,
+                    Math.random() * 4000 - 2000
+                );
+                
+                scene.add(cssObj);
+                domItems.push(cssObj);
+            });
+
+            // 2. Calculate Layout Formations
+            calculateTable();
+            calculateSphere();
+            calculateHelix();
+            calculateGrid();
+
+            // 3. Setup Renderer & Controls
+            renderer = new CSS3DRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            controls = new TrackballControls(camera, renderer.domElement);
+            controls.minDistance = 500;
+            controls.maxDistance = 6000;
+            controls.addEventListener('change', () => renderer.render(scene, camera));
+
+            // 4. Bind Events
+            document.getElementById('btn-table').addEventListener('click', () => transitionTo(formations.table, 2000));
+            document.getElementById('btn-sphere').addEventListener('click', () => transitionTo(formations.sphere, 2000));
+            document.getElementById('btn-helix').addEventListener('click', () => transitionTo(formations.helix, 2000));
+            document.getElementById('btn-grid').addEventListener('click', () => transitionTo(formations.grid, 2000));
+
+            window.addEventListener('resize', handleResize);
+
+            // Initial load animation
+            transitionTo(formations.table, 2000);
+        }
+
+        // Layout Generators
+        function calculateTable() {
+            domItems.forEach((_, i) => {
+                const target = new THREE.Object3D();
+                const col = (i % 20) + 1;
+                const row = Math.floor(i / 20) + 1;
+                target.position.set((col * 140) - 1500, -(row * 180) + 1000, 0);
+                formations.table.push(target);
+            });
+        }
+
+        function calculateSphere() {
+            const vec = new THREE.Vector3();
+            const len = domItems.length;
+            domItems.forEach((_, i) => {
+                const phi = Math.acos(-1 + (2 * i) / len);
+                const theta = Math.sqrt(len * Math.PI) * phi;
+                const target = new THREE.Object3D();
+                target.position.setFromSphericalCoords(800, phi, theta);
+                vec.copy(target.position).multiplyScalar(2);
+                target.lookAt(vec);
+                formations.sphere.push(target);
+            });
+        }
+
+        function calculateHelix() {
+            const vec = new THREE.Vector3();
+            domItems.forEach((_, i) => {
+                const strand = (i % 2) * Math.PI; 
+                const theta = (i * 0.1) + strand; 
+                const yPos = -(i * 15) + 900;
+                
+                const target = new THREE.Object3D();
+                target.position.setFromCylindricalCoords(900, theta, yPos);
+                vec.set(target.position.x * 2, target.position.y, target.position.z * 2);
+                target.lookAt(vec);
+                formations.helix.push(target);
+            });
+        }
+
+        function calculateGrid() {
+            domItems.forEach((_, i) => {
+                const target = new THREE.Object3D();
+                const x = i % 5;
+                const y = Math.floor(i / 5) % 4;
+                const z = Math.floor(i / 20);
+                target.position.set((x * 400) - 800, -(y * 400) + 800, (z * 1000) - 2000);
+                formations.grid.push(target);
+            });
+        }
+
+        // Animation Engine
+        function transitionTo(targets, speed) {
+            TWEEN.removeAll();
+            domItems.forEach((item, i) => {
+                const dest = targets[i];
+
+                new TWEEN.Tween(item.position)
+                    .to({ x: dest.position.x, y: dest.position.y, z: dest.position.z }, Math.random() * speed + speed)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+
+                new TWEEN.Tween(item.rotation)
+                    .to({ x: dest.rotation.x, y: dest.rotation.y, z: dest.rotation.z }, Math.random() * speed + speed)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+            });
+
+            new TWEEN.Tween(this)
+                .to({}, speed * 2)
+                .onUpdate(() => renderer.render(scene, camera))
+                .start();
+        }
+
+        function handleResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.render(scene, camera);
+        }
+
+        function runAnimationLoop() {
+            requestAnimationFrame(runAnimationLoop);
+            TWEEN.update();
+            controls.update();
+        }
+    </script>
+</body>
+</html>
