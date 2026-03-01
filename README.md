@@ -1,49 +1,26 @@
 # Kesatria-Assignment
 Assignment for Kesatria
 
-Project Overview
+# 3D Data Visualization App
 
-This is my submission for the 3D data visualization assignment for the Software Developer role.
+This project visualizes a dataset of user profiles in a 3D interactive space, functioning as a modernized, data-driven take on the classic Three.js Periodic Table. It dynamically pulls data from a Google Sheet and requires Google OAuth for access.
 
-It is a modernized, data-driven web application built on top of the classic Three.js CSS3D Periodic Table example.
+## Features & Implementation Details
 
-The app dynamically fetches a dataset of user profiles from a Google Sheet (imported from the provided CSV) and renders them in an interactive 3D space.
+* **Google Authentication:** Implemented Google Identity Services for a secure, one-tap login flow on the landing page (`index.html`).
+* **Dynamic Data Integration:** Integrated the Google Sheets API using modern ES6 `async/await` to fetch and parse live user data (`Data Template.csv`) on the fly.
+* **Data Sanitization & Defensive UI:** * Built-in Regex parsing to clean currency strings (e.g., converting "$200,000" to workable floats) for accurate conditional color rendering based on Net Worth.
+    * Added image fallback handlers to prevent the UI from breaking if a profile photo URL is dead.
+* **Custom 3D Layout Algorithms:** * Calculated exact vector math to arrange the DOM elements into four distinct formations: a 20x10 Table, a Fibonacci Sphere, a custom Double Helix structure, and a 5x4x10 Grid.
+* **Animation Engine:** Utilized `TWEEN.js` to calculate smooth interpolation when transitioning between the 3D layouts.
 
+## Architecture & Best Practices
 
-Authentication and Architecture
+To keep the solution maintainable and scalable:
+* **Modular Logic:** Separated network requests (`loadDataset`), DOM creation (`buildScene`), and layout mathematics (`calculateGrid`, etc.) into distinct functions. 
+* **CDN Dependencies:** Utilized `unpkg` CDNs for the Three.js libraries to keep the repository lightweight and easily deployable without a complex build step.
+* **Responsive:** Bound a resize event listener to automatically update the camera projection matrix and renderer size.
 
-The landing page (index.html) uses Google Identity Services to handle a secure, one-tap OAuth login flow.
+## How to Run
 
-The main visualization (source.html) uses modern async/await JavaScript to fetch and parse the live data via the Google Sheets API.
-
-I utilized unpkg CDNs for all Three.js dependencies to keep the project lightweight and easily deployable without complex build steps.
-
-Data Handling and Custom Logic
-
-I replaced the original array logic with dynamic DOM creation and implemented defensive programming to handle the data safely.
-
-The code uses regex to sanitize currency strings into usable floats to evaluate the Net Worth column and apply the correct background colors to the cards.
-
-I added image fallback handlers so the UI does not break if a profile photo URL is invalid.
-
-I retained the original main.css file to keep the core aesthetic but updated the HTML generation to cleanly map the new data fields like Country, Age, and Interest.
-
-
-3D Layout Calculations
-
-The vector math was recalculated to arrange the DOM elements into a 20x10 Table.
-
-It includes a Fibonacci Sphere.
-
-I mapped coordinates for a custom Double Helix structure.
-
-It includes a 5x4x10 Grid arrangement.
-
-All smooth transitions between these geometric states are handled by TWEEN.js.
-
-
-Running the Project
-
-Because this application relies on Google Identity Services and the Google Sheets API, it must be served over a local development server (like VS Code Live Server) to avoid CORS and authentication errors.
-
-It can also be viewed directly via the live deployment URL provided in my submission.
+Because this app utilizes Google Identity Services and the Google Sheets API, it must be run on a local development server (like VS Code Live Server) or viewed via the live deployment URL to avoid CORS/Auth restrictions.
