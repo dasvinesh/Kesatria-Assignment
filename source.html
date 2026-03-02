@@ -266,55 +266,73 @@
             });
         }
 
-   function calculatePyramid() {
+  function calculatePyramid() {
             formations.pyramid.length = 0;
 
-            const n = domItems.length, per = Math.ceil(n / 4);
-            let rows = 1; while ((rows * (rows + 1)) / 2 < per) rows++;
+            const totalItems = domItems.length;
+            const itemsPerFace = Math.ceil(totalItems / 4);
+            
+            let rows = 1; 
+            while ((rows * (rows + 1)) / 2 < itemsPerFace) {
+                rows++;
+            }
 
-            // Reduced the scale multiplier from 260 to 170 to make it compact
-            const S = Math.max(700, rows * 170); 
-            const V = [
-                new THREE.Vector3( 1,  1,  1).multiplyScalar(S),
-                new THREE.Vector3(-1, -1,  1).multiplyScalar(S),
-                new THREE.Vector3(-1,  1, -1).multiplyScalar(S),
-                new THREE.Vector3( 1, -1, -1).multiplyScalar(S)
+            const scale = Math.max(700, rows * 170); 
+            const vertices = [
+                new THREE.Vector3( 1,  1,  1).multiplyScalar(scale),
+                new THREE.Vector3(-1, -1,  1).multiplyScalar(scale),
+                new THREE.Vector3(-1,  1, -1).multiplyScalar(scale),
+                new THREE.Vector3( 1, -1, -1).multiplyScalar(scale)
             ];
-            const F = [[0,1,2],[0,3,1],[0,2,3],[1,3,2]];
-            const C = V[0].clone().add(V[1]).add(V[2]).add(V[3]).multiplyScalar(0.25);
+            const faces = [[0,1,2],[0,3,1],[0,2,3],[1,3,2]];
+            
+            const centerPoint = vertices[0].clone().add(vertices[1]).add(vertices[2]).add(vertices[3]).multiplyScalar(0.25);
+            const rowDenominator = Math.max(1, rows - 1);
+            const edgeMargin = 0.09;
 
-            const denom = Math.max(1, rows - 1);
-            const m = 0.09;
+            let currentIndex = 0;
 
-            let k = 0;
+            for (let f = 0; f < 4 && currentIndex < totalItems; f++) {
+                const pointA = vertices[faces[f][0]].clone();
+                const pointB = vertices[faces[f][1]].clone();
+                const pointC = vertices[faces[f][2]].clone();
+                
+                let surfaceNormal = new THREE.Vector3().crossVectors(pointB.clone().sub(pointA), pointC.clone().sub(pointA)).normalize();
+                const faceCenter = pointA.clone().add(pointB).add(pointC).multiplyScalar(1 / 3);
+                
+                if (surfaceNormal.dot(faceCenter.clone().sub(centerPoint)) < 0) {
+                    surfaceNormal.negate();
+                }
 
-            for (let f = 0; f < 4 && k < n; f++) {
-                const a = V[F[f][0]].clone(), b = V[F[f][1]].clone(), c = V[F[f][2]].clone();
-                let N = new THREE.Vector3().crossVectors(b.clone().sub(a), c.clone().sub(a)).normalize();
-                const fc = a.clone().add(b).add(c).multiplyScalar(1 / 3);
-                if (N.dot(fc.clone().sub(C)) < 0) N.negate();
+                const faceLimit = Math.min(totalItems, (f + 1) * itemsPerFace);
 
-                const cap = Math.min(n, (f + 1) * per);
+                for (let r = 0; r < rows && currentIndex < faceLimit; r++) {
+                    const rowRatio = r / rowDenominator;
+                    const itemsInRow = r + 1;
+                    
+                    for (let j = 0; j < itemsInRow && currentIndex < faceLimit; j++) {
+                        const colRatio = (itemsInRow === 1) ? 0 : j / (itemsInRow - 1);
 
-                for (let r = 0; r < rows && k < cap; r++) {
-                    const t = r / denom, cnt = r + 1;
-                    for (let j = 0; j < cnt && k < cap; j++) {
-                        const s = (cnt === 1) ? 0 : j / (cnt - 1);
+                        let weight0 = 1 - rowRatio;
+                        let weight1 = rowRatio * (1 - colRatio);
+                        let weight2 = rowRatio * colRatio;
+                        
+                        const divisor = 1 + 3 * edgeMargin;
+                        weight0 = (weight0 + edgeMargin) / divisor; 
+                        weight1 = (weight1 + edgeMargin) / divisor; 
+                        weight2 = (weight2 + edgeMargin) / divisor;
 
-                        let w0 = 1 - t, w1 = t * (1 - s), w2 = t * s;
-                        const d = 1 + 3 * m;
-                        w0 = (w0 + m) / d; w1 = (w1 + m) / d; w2 = (w2 + m) / d;
-
-                        const p = new THREE.Vector3()
-                            .addScaledVector(a, w0)
-                            .addScaledVector(b, w1)
-                            .addScaledVector(c, w2);
+                        const finalPosition = new THREE.Vector3()
+                            .addScaledVector(pointA, weight0)
+                            .addScaledVector(pointB, weight1)
+                            .addScaledVector(pointC, weight2);
 
                         const target = new THREE.Object3D();
-                        target.position.copy(p);
-                        target.lookAt(p.clone().add(N));
+                        target.position.copy(finalPosition);
+                        target.lookAt(finalPosition.clone().add(surfaceNormal));
+                        
                         formations.pyramid.push(target);
-                        k++;
+                        currentIndex++;
                     }
                 }
             }
@@ -357,6 +375,7 @@
     </script>
 </body>
 </html>
+
 
 
 
