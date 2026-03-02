@@ -101,6 +101,7 @@
         <button id="btn-sphere">SPHERE</button>
         <button id="btn-helix">DOUBLE HELIX</button>
         <button id="btn-grid">GRID</button>
+        <button id="btn-pyramid">PYRAMID</button> </div>
     </div>
 
     <script type="importmap">
@@ -125,7 +126,7 @@
 
         let camera, scene, renderer, controls;
         const domItems = [];
-        const formations = { table: [], sphere: [], helix: [], grid: [] };
+        const formations = { table: [], sphere: [], helix: [], grid: [], pyramid: [] };
 
         // Init App
         loadDataset();
@@ -193,6 +194,7 @@
             calculateSphere();
             calculateHelix();
             calculateGrid();
+            calculatePyramid();
 
             // 3. Setup Renderer & Controls
             renderer = new CSS3DRenderer();
@@ -209,7 +211,7 @@
             document.getElementById('btn-sphere').addEventListener('click', () => transitionTo(formations.sphere, 2000));
             document.getElementById('btn-helix').addEventListener('click', () => transitionTo(formations.helix, 2000));
             document.getElementById('btn-grid').addEventListener('click', () => transitionTo(formations.grid, 2000));
-
+            document.getElementById('btn-pyramid').addEventListener('click', () => transitionTo(formations.pyramid, 2000));
             window.addEventListener('resize', handleResize);
 
             // Initial load animation
@@ -256,15 +258,50 @@
             });
         }
 
-        function calculateGrid() {
-            domItems.forEach((_, i) => {
-                const target = new THREE.Object3D();
-                const x = i % 5;
-                const y = Math.floor(i / 5) % 4;
-                const z = Math.floor(i / 20);
-                target.position.set((x * 400) - 800, -(y * 400) + 800, (z * 1000) - 2000);
-                formations.grid.push(target);
-            });
+       function calculatePyramid() {
+    const len = domItems.length;
+    const vector = new THREE.Vector3();
+
+    // A tetrahedron has 4 vertices. 
+    // We define the four corners of our pyramid in 3D space.
+    const vertices = [
+        new THREE.Vector3(0, 1000, 0),          // Top Apex
+        new THREE.Vector3(1000, -500, 1000),    // Bottom Front Right
+        new THREE.Vector3(-1000, -500, 1000),   // Bottom Front Left
+        new THREE.Vector3(0, -500, -1000)       // Bottom Back
+    ];
+
+    domItems.forEach((_, i) => {
+        const target = new THREE.Object3D();
+ 
+        const face = i % 4;
+        const ratio = Math.random();
+        const ratio2 = Math.random();
+
+
+        const v1 = vertices[face];
+        const v2 = vertices[(face + 1) % 4];
+        const v3 = vertices[(face + 2) % 4];
+
+        const a = 1 - Math.sqrt(ratio);
+        const b = ratio2 * Math.sqrt(ratio);
+        const c = 1 - a - b;
+
+        target.position.set(
+            a * v1.x + b * v2.x + c * v3.x,
+            a * v1.y + b * v2.y + c * v3.y,
+            a * v1.z + b * v2.z + c * v3.z
+        );
+
+        vector.set(target.position.x * 2, target.position.y, target.position.z * 2);
+        target.lookAt(vector);
+
+        formations.pyramid.push(target);
+    });
+}
+
+        function caclculatePyramid(){
+
         }
 
         // Animation Engine
