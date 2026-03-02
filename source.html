@@ -267,50 +267,84 @@
         }
 
        function calculatePyramid() {
-            const itemsPerFace = Math.ceil(domItems.length / 4);
+    formations.pyramid.length = 0;
 
-            domItems.forEach((_, i) => {
+    const n = domItems.length;
+    const itemsPerFace = Math.ceil(n / 4);
+
+    let rows = 1;
+    while ((rows * (rows + 1)) / 2 < itemsPerFace) rows++;
+
+    const scale = 900;
+    const V = [
+        new THREE.Vector3( 1,  1,  1).multiplyScalar(scale),
+        new THREE.Vector3(-1, -1,  1).multiplyScalar(scale),
+        new THREE.Vector3(-1,  1, -1).multiplyScalar(scale),
+        new THREE.Vector3( 1, -1, -1).multiplyScalar(scale)
+    ];
+
+    const faces = [
+        [0, 1, 2],
+        [0, 3, 1],
+        [0, 2, 3],
+        [1, 3, 2]
+    ];
+
+    const center = new THREE.Vector3()
+        .addVectors(V[0], V[1])
+        .add(V[2])
+        .add(V[3])
+        .multiplyScalar(0.25);
+
+    let currentItem = 0;
+
+    for (let f = 0; f < 4; f++) {
+        if (currentItem >= n) break;
+
+        const a = V[faces[f][0]].clone();
+        const b = V[faces[f][1]].clone();
+        const c = V[faces[f][2]].clone();
+
+        const ab = b.clone().sub(a);
+        const ac = c.clone().sub(a);
+
+        const normal = new THREE.Vector3().crossVectors(ab, ac).normalize();
+        const faceCentroid = a.clone().add(b).add(c).multiplyScalar(1 / 3);
+        if (normal.dot(faceCentroid.clone().sub(center)) < 0) normal.negate();
+
+        const denom = Math.max(1, rows - 1);
+
+        for (let r = 0; r < rows; r++) {
+            if (currentItem >= n) break;
+
+            const t = r / denom;
+            const countInRow = r + 1;
+
+            for (let col = 0; col < countInRow; col++) {
+                if (currentItem >= n) break;
+                if (currentItem >= (f + 1) * itemsPerFace) break;
+
+                const s = (countInRow === 1) ? 0 : col / (countInRow - 1);
+
+                const w0 = 1 - t;
+                const w1 = t * (1 - s);
+                const w2 = t * s;
+
+                const pos = new THREE.Vector3()
+                    .addScaledVector(a, w0)
+                    .addScaledVector(b, w1)
+                    .addScaledVector(c, w2);
+
                 const target = new THREE.Object3D();
-                const face = Math.floor(i / itemsPerFace);
-                const index = i % itemsPerFace;
-
-                let row = 0;
-                let count = 0;
-                while (count + row + 1 <= index) {
-                    row++;
-                    count += row;
-                }
-                const col = index - count;
-
-                const spacingX = 140;
-                const spacingY = 160;
-
-                const lx = (col - row / 2) * spacingX;
-                const ly = -row * spacingY; 
-
-                const pivot = new THREE.Object3D();
-                const dummyCard = new THREE.Object3D();
-                dummyCard.position.set(lx, ly, 0);
-                pivot.add(dummyCard);
-
-                if (face === 3) {
-                    pivot.rotation.x = -Math.PI / 2;
-                    pivot.position.y = -600;      
-                    dummyCard.position.y += 400;     
-                } else {
-                    pivot.rotation.y = face * ((Math.PI * 2) / 3);
-                    pivot.rotation.x = Math.PI / 6; 
-                    pivot.position.y = 600;
-                }
-
-                pivot.updateMatrixWorld(true);
-
-                target.position.setFromMatrixPosition(dummyCard.matrixWorld);
-                target.rotation.setFromRotationMatrix(dummyCard.matrixWorld);
+                target.position.copy(pos);
+                target.lookAt(pos.clone().add(normal));
 
                 formations.pyramid.push(target);
-            });
+                currentItem++;
+            }
         }
+    }
+}
 
         // Animation Engine
         function transitionTo(targets, speed) {
@@ -350,5 +384,6 @@
     </script>
 </body>
 </html>
+
 
 
