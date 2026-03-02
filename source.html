@@ -266,40 +266,67 @@
             });
         }
 
-        function calculatePyramid() {
-            const vector = new THREE.Vector3();
-            const vertices = [
-                new THREE.Vector3(0, 1000, 0),
-                new THREE.Vector3(1000, -500, 1000),
-                new THREE.Vector3(-1000, -500, 1000),
-                new THREE.Vector3(0, -500, -1000)
-            ];
+       function calculatePyramid() {
+            
+            const itemsPerFace = Math.ceil(domItems.length / 4);
+            let rows = 1;
+            while ((rows * (rows + 1)) / 2 < itemsPerFace) {
+                rows++;
+            }
+            const spacingX = 140; 
+            const spacingY = 160;
+            const leanAngle = Math.PI / 6;
+            const apexY = 800; 
 
-            domItems.forEach((_, i) => {
-                const target = new THREE.Object3D();
-                const face = i % 4;
-                const r1 = Math.random();
-                const r2 = Math.random();
+            let currentItem = 0;
 
-                const v1 = vertices[face];
-                const v2 = vertices[(face + 1) % 4];
-                const v3 = vertices[(face + 2) % 4];
+            for (let face = 0; face < 4; face++) {
+                const pivot = new THREE.Object3D();
 
-                const a = 1 - Math.sqrt(r1);
-                const b = r2 * Math.sqrt(r1);
-                const c = 1 - a - b;
+                if (face < 3) {
+                    const angle = face * ((Math.PI * 2) / 3);
+                    pivot.rotation.y = angle;
+                    pivot.rotation.x = leanAngle; 
+                    pivot.position.y = apexY;
+                } else {
+                    const bottomY = apexY - (rows * spacingY) * Math.cos(leanAngle);
+                    pivot.position.y = bottomY;
+                    pivot.rotation.x = -Math.PI / 2; 
+                }
 
-                target.position.set(
-                    a * v1.x + b * v2.x + c * v3.x,
-                    a * v1.y + b * v2.y + c * v3.y,
-                    a * v1.z + b * v2.z + c * v3.z
-                );
+                pivot.updateMatrixWorld();
 
-                vector.set(target.position.x * 2, target.position.y, target.position.z * 2);
-                target.lookAt(vector);
+                let row = 0;
+                let col = 0;
 
-                formations.pyramid.push(target);
-            });
+                for (let i = 0; i < itemsPerFace; i++) {
+                    if (currentItem >= domItems.length) break;
+
+                    const target = new THREE.Object3D();
+                    const startX = -(row * spacingX) / 2;
+                    const x = startX + col * spacingX;
+                    
+                    let y;
+                    if (face < 3) {
+                        y = -(row * spacingY); 
+                    } else {
+                        y = -(row * spacingY) + ((rows * spacingY) / 2); 
+                    }
+
+                    target.position.set(x, y, 0);
+                    target.applyMatrix4(pivot.matrixWorld);
+                    target.quaternion.setFromRotationMatrix(pivot.matrixWorld);
+                    
+                    formations.pyramid.push(target);
+
+                    currentItem++;
+                    col++;
+                    if (col > row) {
+                        row++;
+                        col = 0;
+                    }
+                }
+            }
         }
 
         // Animation Engine
@@ -340,3 +367,4 @@
     </script>
 </body>
 </html>
+
