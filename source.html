@@ -267,66 +267,49 @@
         }
 
        function calculatePyramid() {
-            
             const itemsPerFace = Math.ceil(domItems.length / 4);
-            let rows = 1;
-            while ((rows * (rows + 1)) / 2 < itemsPerFace) {
-                rows++;
-            }
-            const spacingX = 140; 
-            const spacingY = 160;
-            const leanAngle = Math.PI / 6;
-            const apexY = 800; 
 
-            let currentItem = 0;
-
-            for (let face = 0; face < 4; face++) {
-                const pivot = new THREE.Object3D();
-
-                if (face < 3) {
-                    const angle = face * ((Math.PI * 2) / 3);
-                    pivot.rotation.y = angle;
-                    pivot.rotation.x = leanAngle; 
-                    pivot.position.y = apexY;
-                } else {
-                    const bottomY = apexY - (rows * spacingY) * Math.cos(leanAngle);
-                    pivot.position.y = bottomY;
-                    pivot.rotation.x = -Math.PI / 2; 
-                }
-
-                pivot.updateMatrixWorld();
+            domItems.forEach((_, i) => {
+                const target = new THREE.Object3D();
+                const face = Math.floor(i / itemsPerFace);
+                const index = i % itemsPerFace;
 
                 let row = 0;
-                let col = 0;
-
-                for (let i = 0; i < itemsPerFace; i++) {
-                    if (currentItem >= domItems.length) break;
-
-                    const target = new THREE.Object3D();
-                    const startX = -(row * spacingX) / 2;
-                    const x = startX + col * spacingX;
-                    
-                    let y;
-                    if (face < 3) {
-                        y = -(row * spacingY); 
-                    } else {
-                        y = -(row * spacingY) + ((rows * spacingY) / 2); 
-                    }
-
-                    target.position.set(x, y, 0);
-                    target.applyMatrix4(pivot.matrixWorld);
-                    target.quaternion.setFromRotationMatrix(pivot.matrixWorld);
-                    
-                    formations.pyramid.push(target);
-
-                    currentItem++;
-                    col++;
-                    if (col > row) {
-                        row++;
-                        col = 0;
-                    }
+                let count = 0;
+                while (count + row + 1 <= index) {
+                    row++;
+                    count += row;
                 }
-            }
+                const col = index - count;
+
+                const spacingX = 140;
+                const spacingY = 160;
+
+                const lx = (col - row / 2) * spacingX;
+                const ly = -row * spacingY; 
+
+                const pivot = new THREE.Object3D();
+                const dummyCard = new THREE.Object3D();
+                dummyCard.position.set(lx, ly, 0);
+                pivot.add(dummyCard);
+
+                if (face === 3) {
+                    pivot.rotation.x = -Math.PI / 2;
+                    pivot.position.y = -600;      
+                    dummyCard.position.y += 400;     
+                } else {
+                    pivot.rotation.y = face * ((Math.PI * 2) / 3);
+                    pivot.rotation.x = Math.PI / 6; 
+                    pivot.position.y = 600;
+                }
+
+                pivot.updateMatrixWorld(true);
+
+                target.position.setFromMatrixPosition(dummyCard.matrixWorld);
+                target.rotation.setFromRotationMatrix(dummyCard.matrixWorld);
+
+                formations.pyramid.push(target);
+            });
         }
 
         // Animation Engine
@@ -367,4 +350,5 @@
     </script>
 </body>
 </html>
+
 
