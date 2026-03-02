@@ -266,58 +266,59 @@
             });
         }
 
-    function calculatePyramid() {
-    formations.pyramid.length = 0;
+   function calculatePyramid() {
+            formations.pyramid.length = 0;
 
-    const n = domItems.length, per = Math.ceil(n / 4);
-    let rows = 1; while ((rows * (rows + 1)) / 2 < per) rows++;
+            const n = domItems.length, per = Math.ceil(n / 4);
+            let rows = 1; while ((rows * (rows + 1)) / 2 < per) rows++;
 
-    const S = Math.max(950, rows * 260);
-    const V = [
-        new THREE.Vector3( 1,  1,  1).multiplyScalar(S),
-        new THREE.Vector3(-1, -1,  1).multiplyScalar(S),
-        new THREE.Vector3(-1,  1, -1).multiplyScalar(S),
-        new THREE.Vector3( 1, -1, -1).multiplyScalar(S)
-    ];
-    const F = [[0,1,2],[0,3,1],[0,2,3],[1,3,2]];
-    const C = V[0].clone().add(V[1]).add(V[2]).add(V[3]).multiplyScalar(0.25);
+            // Reduced the scale multiplier from 260 to 170 to make it compact
+            const S = Math.max(700, rows * 170); 
+            const V = [
+                new THREE.Vector3( 1,  1,  1).multiplyScalar(S),
+                new THREE.Vector3(-1, -1,  1).multiplyScalar(S),
+                new THREE.Vector3(-1,  1, -1).multiplyScalar(S),
+                new THREE.Vector3( 1, -1, -1).multiplyScalar(S)
+            ];
+            const F = [[0,1,2],[0,3,1],[0,2,3],[1,3,2]];
+            const C = V[0].clone().add(V[1]).add(V[2]).add(V[3]).multiplyScalar(0.25);
 
-    const denom = Math.max(1, rows - 1);
-    const m = 0.09;
+            const denom = Math.max(1, rows - 1);
+            const m = 0.09;
 
-    let k = 0;
+            let k = 0;
 
-    for (let f = 0; f < 4 && k < n; f++) {
-        const a = V[F[f][0]].clone(), b = V[F[f][1]].clone(), c = V[F[f][2]].clone();
-        let N = new THREE.Vector3().crossVectors(b.clone().sub(a), c.clone().sub(a)).normalize();
-        const fc = a.clone().add(b).add(c).multiplyScalar(1 / 3);
-        if (N.dot(fc.clone().sub(C)) < 0) N.negate();
+            for (let f = 0; f < 4 && k < n; f++) {
+                const a = V[F[f][0]].clone(), b = V[F[f][1]].clone(), c = V[F[f][2]].clone();
+                let N = new THREE.Vector3().crossVectors(b.clone().sub(a), c.clone().sub(a)).normalize();
+                const fc = a.clone().add(b).add(c).multiplyScalar(1 / 3);
+                if (N.dot(fc.clone().sub(C)) < 0) N.negate();
 
-        const cap = Math.min(n, (f + 1) * per);
+                const cap = Math.min(n, (f + 1) * per);
 
-        for (let r = 0; r < rows && k < cap; r++) {
-            const t = r / denom, cnt = r + 1;
-            for (let j = 0; j < cnt && k < cap; j++) {
-                const s = (cnt === 1) ? 0 : j / (cnt - 1);
+                for (let r = 0; r < rows && k < cap; r++) {
+                    const t = r / denom, cnt = r + 1;
+                    for (let j = 0; j < cnt && k < cap; j++) {
+                        const s = (cnt === 1) ? 0 : j / (cnt - 1);
 
-                let w0 = 1 - t, w1 = t * (1 - s), w2 = t * s;
-                const d = 1 + 3 * m;
-                w0 = (w0 + m) / d; w1 = (w1 + m) / d; w2 = (w2 + m) / d;
+                        let w0 = 1 - t, w1 = t * (1 - s), w2 = t * s;
+                        const d = 1 + 3 * m;
+                        w0 = (w0 + m) / d; w1 = (w1 + m) / d; w2 = (w2 + m) / d;
 
-                const p = new THREE.Vector3()
-                    .addScaledVector(a, w0)
-                    .addScaledVector(b, w1)
-                    .addScaledVector(c, w2);
+                        const p = new THREE.Vector3()
+                            .addScaledVector(a, w0)
+                            .addScaledVector(b, w1)
+                            .addScaledVector(c, w2);
 
-                const target = new THREE.Object3D();
-                target.position.copy(p);
-                target.lookAt(p.clone().add(N));
-                formations.pyramid.push(target);
-                k++;
+                        const target = new THREE.Object3D();
+                        target.position.copy(p);
+                        target.lookAt(p.clone().add(N));
+                        formations.pyramid.push(target);
+                        k++;
+                    }
+                }
             }
         }
-    }
-}
         // Animation Engine
         function transitionTo(targets, speed) {
             TWEEN.removeAll();
@@ -356,6 +357,7 @@
     </script>
 </body>
 </html>
+
 
 
 
